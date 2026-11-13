@@ -19,7 +19,7 @@ public class Employee {
     public Employee(){
     }
 
-    public Employee(Integer id, String name, String email, AccessLevel level, boolean active, Department department) {
+    public Employee(Integer id, String name, String email, AccessLevel level, Department department) {
         this.id = id;
         this.name = name;
         this.email = email;
