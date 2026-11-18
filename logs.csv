@@ -1,0 +1,6 @@
+LOGIN,18/11/2026 09:00,192.168.1.10,LOW,Login matinal realizado,true,Chrome Windows
+EXPORT,18/11/2026 10:30,192.168.1.10,LOW,Exportacao de relatorio financeiro,pagamentos,15000
+CONFIG,18/11/2026 11:15,10.0.0.5,HIGH,Alteracao de politica de senha,min_password_length,8,12
+LOGIN,18/11/2026 14:00,45.33.22.11,MEDIUM,Tentativa de acesso externo,false,Firefox Linux
+LOGIN,18/11/2026 14:01,45.33.22.11,MEDIUM,Segunda tentativa falha,false,Firefox Linux
+LOGIN,18/11/2026 14:02,45.33.22.11,HIGH,Terceira tentativa falha,false,Firefox Linux

@@ -1,16 +1,16 @@
 package entities;
 
-import entities.enums.AccessLevel;
+import entities.enums.ActionType;
 import entities.enums.RiskLevel;
+import entities.exceptions.AuditException;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class Employee {
+public abstract class Employee {
     private Integer id;
     private String name;
     private String email;
-    private AccessLevel level;
     private boolean active;
 
     private Department department;
@@ -19,11 +19,16 @@ public class Employee {
     public Employee(){
     }
 
-    public Employee(Integer id, String name, String email, AccessLevel level, Department department) {
+    public Employee(Integer id, String name, String email, Department department) {
+        if(name == null || name.isBlank()) {
+            throw new AuditException("O nome do funcionário não pode ser vazio");
+        }
+        if(email == null || !email.contains("@")) {
+            throw new AuditException("Email inválido");
+        }
         this.id = id;
         this.name = name;
         this.email = email;
-        this.level = level;
         this.active = true;
         this.department = department;
     }
@@ -52,14 +57,6 @@ public class Employee {
         this.email = email;
     }
 
-    public AccessLevel getLevel() {
-        return level;
-    }
-
-    public void setLevel(AccessLevel level) {
-        this.level = level;
-    }
-
     public boolean isActive() {
         return active;
     }
@@ -81,7 +78,24 @@ public class Employee {
     }
 
     public void addLog(AuditLog log){
+        if(!active) {
+            throw new AuditException("Conta bloqueada (" + name + "): não é possivel registrar novos logs...");
+        }
+        validateAction(log);
         logs.add(log);
+        checkFailedLogin();
+    }
+
+    private void checkFailedLogin() {
+        int failedCount = 0;
+        for (AuditLog log: logs){
+            if (log.getAction() == ActionType.LOGIN_FAILED) {
+                failedCount++;
+            }
+        }
+        if(failedCount >= getMaxFailedLogins()) {
+            this.active = false;
+        }
     }
 
     public boolean hasHighRiskActivity() {
@@ -93,13 +107,16 @@ public class Employee {
         return false;
     }
 
+    protected abstract void validateAction(AuditLog log);
+
+    protected abstract int getMaxFailedLogins();
+
     @Override
     public String toString() {
         return "Employee{" +
                 "id=" + id +
                 ", name='" + name + '\'' +
                 ", email='" + email + '\'' +
-                ", level=" + level +
                 ", active=" + active +
                 ", department=" + department +
                 ", logs=" + logs +

@@ -1,81 +1,78 @@
 package app;
 
-import entities.AuditLog;
-import entities.Department;
-import entities.Employee;
-import entities.enums.AccessLevel;
-import entities.enums.ActionType;
-import entities.enums.RiskLevel;
+import entities.*;
+import entities.exceptions.AuditException;
+import services.AuditFileService;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Locale;
+import java.time.format.DateTimeParseException;
+import java.util.InputMismatchException;
+import java.util.List;
 import java.util.Scanner;
 
 
 public class Program {
     public static void main(String[] args) {
-       Scanner enter = new Scanner(System.in);
-       DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
-       System.out.print("Nome do departamento: ");
-       String dpName = enter.nextLine();
+        try (Scanner enter = new Scanner(System.in)) {
+            DateTimeFormatter dateFmt = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+            System.out.print("Nome do departamento: ");
+            String deptName = enter.nextLine();
+            Department dept = new Department(deptName);
 
-       Department dept = new Department(dpName);
+            System.out.println("\n--- CADASTRO DO FUNCIONÁRIO ---");
+            System.out.print("ID do funcionário: ");
+            int id = enter.nextInt();
+            enter.nextLine();
 
-       System.out.println("Entre com os dados do funcionário: ");
+            System.out.print("Nome: ");
+            String name = enter.nextLine();
 
-        System.out.print("ID do funcionário: ");
-        int id = enter.nextInt();
-        enter.nextLine();
+            System.out.print("Email: ");
+            String email = enter.nextLine();
 
-       System.out.print("Nome: ");
-       String funcName = enter.nextLine();
+            System.out.print("Perfil (1 - Guest / 2 - Regular / 3 - Admin): ");
+            int profileType = enter.nextInt();
+            enter.nextLine();
 
-       System.out.print("Email: ");
-       String funcEmail = enter.nextLine();
+            Employee emp = switch (profileType) {
+                case 1 -> {
+                    System.out.print("Data de expiração do acesso (dd/MM/yyyy): ");
+                    LocalDate expDate = LocalDate.parse(enter.nextLine(), dateFmt);
+                    yield new GuestUser(id, name, email, dept, expDate);
+                }
+                case 2 -> new RegularEmployee(id, name, email, dept);
+                case 3 -> {
+                    System.out.print("MFA ativado? (true/false): ");
+                    boolean mfa = Boolean.parseBoolean(enter.nextLine());
+                    yield new adminEmployee(id, name, email, dept, mfa);
+                }
+                default -> throw new AuditException("Tipo de perfil inválido! Escolha 1, 2 ou 3.");
+            };
 
-       System.out.print("Nível de acesso (GUEST, USER, ADMIN): ");
-       AccessLevel level = AccessLevel.valueOf(enter.nextLine().toUpperCase());
+            System.out.print("\nCaminho do arquivo CSV de logs: ");
+            String csvPath = enter.nextLine();
 
-       Employee emp = new Employee(id, funcName, funcEmail, level, dept);
+            AuditFileService fileService = new AuditFileService();
+            List<String> rejectedAlerts = fileService.loadLogsFromCsv(csvPath, emp);
+            String reportPath = fileService.exportAuditReport(csvPath, emp, rejectedAlerts);
 
-       System.out.print("Quantos registros de auditoria para este funcionário? ");
-       int n = enter.nextInt();
-       enter.nextLine();
+            System.out.println("\n--- RESUMO DA AUDITORIA ---");
+            System.out.println("Funcionário: " + emp.getName() + " [" + emp.getClass().getSimpleName() + "]");
+            System.out.println("Departamento: " + emp.getDepartment().getName());
+            System.out.println("Status da conta: " + (emp.isActive() ? "ATIVA" : "BLOQUEADA"));
+            System.out.println("Logs aprovados: " + emp.getLogs().size());
+            System.out.println("Tentativas bloqueadas/alertas: " + rejectedAlerts.size());
+            System.out.println("Possui atividades de alto risco? " + (emp.hasHighRiskActivity() ? "SIM" : "NÃO"));
+            System.out.println("\nRelatório gerado com sucesso em: " + reportPath);
 
-       for(int i = 1; i <= n; i++) {
-           System.out.println("Entre com os dados de registro #" + i + ":");
-
-           System.out.print("Data e hora (DD/MM/YYYY HH:mm): ");
-           LocalDateTime timestamp = LocalDateTime.parse(enter.nextLine(), fmt);
-
-           System.out.print("Endereço IP: ");
-           String ipAddress = enter.nextLine();
-
-           System.out.print("Tipo de ação (LOGIN_SUCESS, LOGIN_FAILED): ");
-           ActionType action = ActionType.valueOf(enter.nextLine().toUpperCase());
-
-           System.out.print("Nível de risco (LOW, MEDIUM, HIGH): ");
-           RiskLevel risk = RiskLevel.valueOf(enter.nextLine().toUpperCase());
-
-           System.out.print("Descrição: ");
-           String description = enter.nextLine();
-
-           AuditLog log = new AuditLog(timestamp, ipAddress, action, risk, description);
-           emp.addLog(log);
-       }
-
-       System.out.println("\n --- RESUMO DO FUNCIONÁRIO ---");
-       System.out.println("Nome: " + emp.getName() + " (" + emp.getEmail() + ")");
-       System.out.println("Departamento: " + emp.getDepartment().getName());
-       System.out.println("Nível de acesso: " + emp.getLevel());
-       System.out.println("Total de logs: " + emp.getLogs());
-       System.out.println("Possui atividades de alto risco? " + (emp.hasHighRiskActivity() ? "SIM" : "NÃO"));
-
-
-
-       enter.close();
+        } catch (AuditException e) {
+            System.out.println("\n[ERRO DE AUDITORIA]: " + e.getMessage());
+        } catch (DateTimeParseException e) {
+            System.out.println("\n[ERRO DE DATA]: Formato inválido. Use dd/MM/yyyy.");
+        } catch (InputMismatchException e) {
+            System.out.println("\n[ERRO DE ENTRADA]: Você digitou texto em um campo numérico.");
+        }
     }
 }

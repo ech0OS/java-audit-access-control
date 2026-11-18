@@ -4,8 +4,10 @@ import entities.enums.ActionType;
 import entities.enums.RiskLevel;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
-public class AuditLog {
+public abstract class AuditLog {
+    static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
     private LocalDateTime timestamp;
     private String ipAddress;
     private ActionType action;
@@ -62,4 +64,6 @@ public class AuditLog {
     public void setDescription(String description) {
         this.description = description;
     }
+
+    public abstract String formatForReport();
 }
