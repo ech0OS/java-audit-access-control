@@ -1,6 +1,6 @@
 # Java Audit & Access Control
 
-Sistema de controle de acesso, validação de permissões e auditoria de eventos desenvolvido em **Java puro**, aplicando princípios de Programação Orientada a Objetos (Herança, Polimorfismo, Encapsulamento), Tratamento de Exceções personalizadas e Manipulação de Arquivos (`java.io`).
+Sistema de controle de acesso, validação de permissões e auditoria de eventos desenvolvido em **Java puro**.
 
 ---
 
